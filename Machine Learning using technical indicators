@@ -1,0 +1,527 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Untitled5.ipynb",
+      "provenance": [],
+      "authorship_tag": "ABX9TyNEwMXfReT7wq0DGPAToxa6",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/GeniusPlums/GeniusPlums/blob/main/Machine%20Learning%20using%20technical%20indicators\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "DOhAWnWfdQbz",
+        "outputId": "19bbe685-89e2-431e-c561-cb5cd0881ac1"
+      },
+      "source": [
+        "pip install pandas_datareader"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: pandas_datareader in /usr/local/lib/python3.7/dist-packages (0.9.0)\n",
+            "Requirement already satisfied: lxml in /usr/local/lib/python3.7/dist-packages (from pandas_datareader) (4.2.6)\n",
+            "Requirement already satisfied: pandas>=0.23 in /usr/local/lib/python3.7/dist-packages (from pandas_datareader) (1.1.5)\n",
+            "Requirement already satisfied: requests>=2.19.0 in /usr/local/lib/python3.7/dist-packages (from pandas_datareader) (2.23.0)\n",
+            "Requirement already satisfied: numpy>=1.15.4 in /usr/local/lib/python3.7/dist-packages (from pandas>=0.23->pandas_datareader) (1.19.5)\n",
+            "Requirement already satisfied: pytz>=2017.2 in /usr/local/lib/python3.7/dist-packages (from pandas>=0.23->pandas_datareader) (2018.9)\n",
+            "Requirement already satisfied: python-dateutil>=2.7.3 in /usr/local/lib/python3.7/dist-packages (from pandas>=0.23->pandas_datareader) (2.8.2)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.7/dist-packages (from python-dateutil>=2.7.3->pandas>=0.23->pandas_datareader) (1.15.0)\n",
+            "Requirement already satisfied: urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1 in /usr/local/lib/python3.7/dist-packages (from requests>=2.19.0->pandas_datareader) (1.24.3)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.7/dist-packages (from requests>=2.19.0->pandas_datareader) (2021.10.8)\n",
+            "Requirement already satisfied: chardet<4,>=3.0.2 in /usr/local/lib/python3.7/dist-packages (from requests>=2.19.0->pandas_datareader) (3.0.4)\n",
+            "Requirement already satisfied: idna<3,>=2.5 in /usr/local/lib/python3.7/dist-packages (from requests>=2.19.0->pandas_datareader) (2.10)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "WhbNcnL1dUpc",
+        "outputId": "9298266c-b9d7-4779-d37e-817f5d0ee2ac"
+      },
+      "source": [
+        "#importing packages\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import datetime as dt\n",
+        "import pandas_datareader as pdr\n",
+        "import seaborn as sns\n",
+        "import matplotlib.pyplot as plt\n",
+        "import bs4 as bs\n",
+        "import requests\n",
+        "from IPython.display import clear_output\n",
+        "from scipy.stats import mstats\n",
+        "from sklearn.cluster import KMeans\n",
+        "from sklearn.mixture import GaussianMixture\n",
+        "from sklearn.model_selection import RandomizedSearchCV, validation_curve, TimeSeriesSplit\n",
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "import pickle\n",
+        "import os\n",
+        "from sklearn.model_selection import GridSearchCV\n",
+        "sns.set()\n",
+        "\n",
+        "\n",
+        "\n",
+        "#Obtain list of S&100 companies from wikipedia\n",
+        "resp = requests.get(\"https://en.wikipedia.org/wiki/S%26P_100\")\n",
+        "convert_soup = bs.BeautifulSoup(resp.text, 'lxml')\n",
+        "table = convert_soup.find('table',{'class':'wikitable sortable'})\n",
+        "\n",
+        "tickers = []\n",
+        "\n",
+        "for rows in table.findAll('tr')[1:]:\n",
+        "    ticker = rows.findAll('td')[0].text.strip()\n",
+        "    tickers.append(ticker)\n",
+        "\n",
+        "all_data = pd.DataFrame()\n",
+        "test_data = pd.DataFrame()\n",
+        "no_data = []\n",
+        "\n",
+        "#Extract data from Yahoo Finance\n",
+        "for i in tickers:\n",
+        "    try:\n",
+        "        print(i)\n",
+        "        test_data = pdr.get_data_yahoo(i, start = dt.datetime(1990,1,1), end = dt.date.today())\n",
+        "        test_data['symbol'] = i\n",
+        "        all_data = all_data.append(test_data)\n",
+        "        clear_output(wait = True)\n",
+        "    except:\n",
+        "        no_data.append(i)\n",
+        "\n",
+        "    clear_output(wait = True)"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "XOM\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 358
+        },
+        "id": "9rA5x2bZq0Gh",
+        "outputId": "334d6ec4-6fdd-48cf-9ef3-bf5831648783"
+      },
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import datetime as dt\n",
+        "import pandas_datareader as pdr\n",
+        "import seaborn as sns\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "#extracting data from Yahoo Finance API\n",
+        "tickers = ['AAPL','NFLX']\n",
+        "all_data = pd.DataFrame()\n",
+        "test_data = pd.DataFrame()\n",
+        "no_data = []\n",
+        "\n",
+        "for i in tickers:\n",
+        "    try:\n",
+        "        test_data = pdr.get_data_yahoo(i, start = dt.datetime(1990,1,1), end = dt.date.today())\n",
+        "        test_data['symbol'] = i\n",
+        "        all_data = all_data.append(test_data)\n",
+        "    except:\n",
+        "        no_data.append(i)\n",
+        "\n",
+        "#Creating Return column\n",
+        "all_data['return'] = all_data.groupby('symbol')['Close'].pct_change() "
+      ],
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyError",
+          "evalue": "ignored",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-10-7200eb248dfc>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     21\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     22\u001b[0m \u001b[0;31m#Creating Return column\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 23\u001b[0;31m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'return'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mgroupby\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'symbol'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mpct_change\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/frame.py\u001b[0m in \u001b[0;36mgroupby\u001b[0;34m(self, by, axis, level, as_index, sort, group_keys, squeeze, observed, dropna)\u001b[0m\n\u001b[1;32m   6523\u001b[0m             \u001b[0msqueeze\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0msqueeze\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6524\u001b[0m             \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6525\u001b[0;31m             \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6526\u001b[0m         )\n\u001b[1;32m   6527\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/groupby.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, obj, keys, axis, level, grouper, exclusions, selection, as_index, sort, group_keys, squeeze, observed, mutated, dropna)\u001b[0m\n\u001b[1;32m    531\u001b[0m                 \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    532\u001b[0m                 \u001b[0mmutated\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmutated\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 533\u001b[0;31m                 \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    534\u001b[0m             )\n\u001b[1;32m    535\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/grouper.py\u001b[0m in \u001b[0;36mget_grouper\u001b[0;34m(obj, key, axis, level, sort, observed, mutated, validate, dropna)\u001b[0m\n\u001b[1;32m    784\u001b[0m                 \u001b[0min_axis\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlevel\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    785\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 786\u001b[0;31m                 \u001b[0;32mraise\u001b[0m \u001b[0mKeyError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    787\u001b[0m         \u001b[0;32melif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mGrouper\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mkey\u001b[0m \u001b[0;32mis\u001b[0m \u001b[0;32mnot\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    788\u001b[0m             \u001b[0;31m# Add key to exclusions\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'symbol'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 358
+        },
+        "id": "ubc6CdRpqK18",
+        "outputId": "d4151dbc-6500-450a-8df6-382d022cbe42"
+      },
+      "source": [
+        "all_data['SMA_5'] = all_data.groupby('symbol')['Close'].transform(lambda x: x.rolling(window = 5).mean())\n",
+        "all_data['SMA_15'] = all_data.groupby('symbol')['Close'].transform(lambda x: x.rolling(window = 15).mean())\n",
+        "all_data['SMA_ratio'] = all_data['SMA_15'] / all_data['SMA_5']"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyError",
+          "evalue": "ignored",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-11-b0c2e6b3861f>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[0;32m----> 1\u001b[0;31m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'SMA_5'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mgroupby\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'symbol'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtransform\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;32mlambda\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m:\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mrolling\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mwindow\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m5\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmean\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      2\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'SMA_15'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mgroupby\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'symbol'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtransform\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;32mlambda\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m:\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mrolling\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mwindow\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m15\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmean\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'SMA_ratio'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'SMA_15'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m/\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'SMA_5'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/frame.py\u001b[0m in \u001b[0;36mgroupby\u001b[0;34m(self, by, axis, level, as_index, sort, group_keys, squeeze, observed, dropna)\u001b[0m\n\u001b[1;32m   6523\u001b[0m             \u001b[0msqueeze\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0msqueeze\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6524\u001b[0m             \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6525\u001b[0;31m             \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6526\u001b[0m         )\n\u001b[1;32m   6527\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/groupby.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, obj, keys, axis, level, grouper, exclusions, selection, as_index, sort, group_keys, squeeze, observed, mutated, dropna)\u001b[0m\n\u001b[1;32m    531\u001b[0m                 \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    532\u001b[0m                 \u001b[0mmutated\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmutated\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 533\u001b[0;31m                 \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    534\u001b[0m             )\n\u001b[1;32m    535\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/grouper.py\u001b[0m in \u001b[0;36mget_grouper\u001b[0;34m(obj, key, axis, level, sort, observed, mutated, validate, dropna)\u001b[0m\n\u001b[1;32m    784\u001b[0m                 \u001b[0min_axis\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlevel\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    785\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 786\u001b[0;31m                 \u001b[0;32mraise\u001b[0m \u001b[0mKeyError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    787\u001b[0m         \u001b[0;32melif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mGrouper\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mkey\u001b[0m \u001b[0;32mis\u001b[0m \u001b[0;32mnot\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    788\u001b[0m             \u001b[0;31m# Add key to exclusions\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'symbol'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "uv55bGE5qlJp"
+      },
+      "source": [
+        "\n",
+        "#Plotting\n",
+        "start = dt.datetime.strptime('2019-01-01', '%Y-%m-%d')\n",
+        "end = dt.datetime.strptime('2019-12-31', '%Y-%m-%d')\n",
+        "sns.set()\n",
+        "\n",
+        "fig = plt.figure(facecolor = 'white', figsize = (20,10))\n",
+        "\n",
+        "ax0 = plt.subplot2grid((6,4), (1,0), rowspan=4, colspan=4)\n",
+        "ax0.plot(all_data[all_data.symbol=='AAPL'].loc[start:end,['Close','SMA_5','SMA_15']])\n",
+        "ax0.set_facecolor('ghostwhite')\n",
+        "ax0.legend(['Close','SMA_5','SMA_15'],ncol=3, loc = 'upper left', fontsize = 15)\n",
+        "plt.title(\"Apple Stock Price, Slow and Fast Moving Average\", fontsize = 20)\n",
+        "\n",
+        "ax1 = plt.subplot2grid((6,4), (5,0), rowspan=1, colspan=4, sharex = ax0)\n",
+        "ax1.plot(all_data[all_data.symbol=='AAPL'].loc[start:end,['SMA_ratio']], color = 'blue')\n",
+        "ax1.legend(['SMA_Ratio'],ncol=3, loc = 'upper left', fontsize = 12)\n",
+        "ax1.set_facecolor('silver')\n",
+        "plt.subplots_adjust(left=.09, bottom=.09, right=1, top=.95, wspace=.20, hspace=0)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "c7tKMb_qqlvv"
+      },
+      "source": [
+        "all_data['SMA5_Volume'] = all_data.groupby('symbol')['Volume'].transform(lambda x: x.rolling(window = 5).mean())\n",
+        "all_data['SMA15_Volume'] = all_data.groupby('symbol')['Volume'].transform(lambda x: x.rolling(window = 15).mean())\n",
+        "all_data['SMA_Volume_Ratio'] = all_data['SMA5_Volume']/all_data['SMA15_Volume']"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3GErvTQbqmFp"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1wvmLrYwqmgi"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 376
+        },
+        "id": "SDWgE5zKdeEL",
+        "outputId": "9ea58627-e94c-4e48-abc0-2fdcbacd05ea"
+      },
+      "source": [
+        "all_data['Close_Shifted'] = all_data.groupby('symbol')['Close'].transform(lambda x: x.shift(-6))\n",
+        "all_data['Target'] = ((all_data['Close_Shifted'] - all_data['Open'])/(all_data['Open']) * 100).shift(-1)\n",
+        "all_data['Target_Direction'] = np.where(all_data['Target']>0,1,0)\n",
+        "all_data = all_data.dropna().copy()"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyError",
+          "evalue": "ignored",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-7-ca7ecbebb769>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[0;32m----> 1\u001b[0;31m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close_Shifted'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mgroupby\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'Symbol'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtransform\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;32mlambda\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m:\u001b[0m \u001b[0mx\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshift\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m-\u001b[0m\u001b[0;36m6\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      2\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Target'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Close_Shifted'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m-\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Open'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m/\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Open'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;34m*\u001b[0m \u001b[0;36m100\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshift\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m-\u001b[0m\u001b[0;36m1\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Target_Direction'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mwhere\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mall_data\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Target'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m>\u001b[0m\u001b[0;36m0\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;36m1\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;36m0\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mall_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mall_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/frame.py\u001b[0m in \u001b[0;36mgroupby\u001b[0;34m(self, by, axis, level, as_index, sort, group_keys, squeeze, observed, dropna)\u001b[0m\n\u001b[1;32m   6523\u001b[0m             \u001b[0msqueeze\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0msqueeze\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6524\u001b[0m             \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6525\u001b[0;31m             \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6526\u001b[0m         )\n\u001b[1;32m   6527\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/groupby.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, obj, keys, axis, level, grouper, exclusions, selection, as_index, sort, group_keys, squeeze, observed, mutated, dropna)\u001b[0m\n\u001b[1;32m    531\u001b[0m                 \u001b[0mobserved\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mobserved\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    532\u001b[0m                 \u001b[0mmutated\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmutated\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 533\u001b[0;31m                 \u001b[0mdropna\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdropna\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    534\u001b[0m             )\n\u001b[1;32m    535\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.7/dist-packages/pandas/core/groupby/grouper.py\u001b[0m in \u001b[0;36mget_grouper\u001b[0;34m(obj, key, axis, level, sort, observed, mutated, validate, dropna)\u001b[0m\n\u001b[1;32m    784\u001b[0m                 \u001b[0min_axis\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlevel\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    785\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 786\u001b[0;31m                 \u001b[0;32mraise\u001b[0m \u001b[0mKeyError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    787\u001b[0m         \u001b[0;32melif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mgpr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mGrouper\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mgpr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mkey\u001b[0m \u001b[0;32mis\u001b[0m \u001b[0;32mnot\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    788\u001b[0m             \u001b[0;31m# Add key to exclusions\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'Symbol'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cLZpAQFNdoEV"
+      },
+      "source": [
+        "Target_variables = ['EMA_ratio','ATR_5','ATR_15','ATR_Ratio',\n",
+        "                       'ADX_5','ADX_15','SMA_Volume_Ratio','Stochastic_5','Stochastic_15','Stochastic_Ratio',\n",
+        "                      'RSI_5','RSI_15','RSI_ratio','MACD','EMA_5','EMA_21','EMA_50','EMA_200','AO']\n",
+        "for variable in Target_variables:\n",
+        "    all_data.loc[:,variable] = mstats.winsorize(all_data.loc[:,variable], limits = [0.1,0.1])"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ft1nTQTUduC7"
+      },
+      "source": [
+        "returns = all_data[['symbol','return']].copy()\n",
+        "returns['Date'] = returns.index.copy()\n",
+        "\n",
+        "#Pivot the returns to create series of returns for each stock \n",
+        "transposed = returns.pivot(index = 'Date', columns = 'symbol', values = 'return')\n",
+        "\n",
+        "#Transpose the data to get companies on the index level and dates on the column level since clusters takes place on index level\n",
+        "X = transposed.dropna().transpose()\n",
+        "\n",
+        "#Extract sum of squares for K-means clusters from 1 to 50 clusters\n",
+        "sum_of_sq = np.zeros([50, 1])\n",
+        "for k in range(1, 51):\n",
+        "    sum_of_sq[k-1] = KMeans(n_clusters=k).fit(X).inertia_\n",
+        "    \n",
+        "plt.plot(range(1, 50), sum_of_sq[1:50])\n",
+        "plt.title(\"Elbow Method\") \n",
+        "plt.xlabel(\"Number of Cluster\") \n",
+        "plt.ylabel(\"Within-cluster Sum of Squares\")\n",
+        "\n",
+        "pd.DataFrame(sum_of_sq, columns = ['Difference in SS'], index = range(1,51)).diff()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "aC9iCWi1dwCd"
+      },
+      "source": [
+        "gmm = GaussianMixture(n_components = 17)\n",
+        "gmm.fit(transposed.dropna().transpose())\n",
+        "\n",
+        "#Predict for each company\n",
+        "clusters = gmm.predict(transposed.dropna().transpose())\n",
+        "clusters_df = pd.DataFrame({'Cluster':clusters,\n",
+        "                           'Companies':transposed.columns})\n",
+        "\n",
+        "#Sort by Clusters\n",
+        "clusters_df = clusters_df.sort_values(['Cluster']).reset_index(drop = True)\n",
+        "\n",
+        "#Save as csv\n",
+        "clusters_df.to_csv(\"clusters.csv\")\n",
+        "clusters_df = pd.read_csv(\"clusters.csv\", index_col = 0)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WqOOYLBnd0Hk"
+      },
+      "source": [
+        "all_data.index = pd.to_datetime(all_data.index)\n",
+        "\n",
+        "train_data = all_data.loc[:'2018-12-31',]\n",
+        "test_data = all_data.loc['2019-01-01':] "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1ITgAfkNd6qd"
+      },
+      "source": [
+        "X_train = train_data.loc[:,['Target_variables']]\n",
+        "\n",
+        "Y_train = train_data.loc[:,['Target_Direction']]\n",
+        "\n",
+        "#Create validation curve for the Random Forest Classifier\n",
+        "rf = RandomForestClassifier()\n",
+        "train_scoreNum, test_scoreNum = validation_curve(rf,\n",
+        "                                X = X_train['2010-01-01':], y = Y_train.loc['2010-01-01':,'Target_Direction'], \n",
+        "                                param_name = 'n_estimators', \n",
+        "                                param_range = [3,4,7,10,12,15,20,25,30], cv = TimeSeriesSplit(n_splits = 3))\n",
+        "\n",
+        "train_scores_mean = np.mean(train_scoreNum, axis=1)\n",
+        "train_scores_std = np.std(train_scoreNum, axis=1)\n",
+        "test_scores_mean = np.mean(test_scoreNum, axis=1)\n",
+        "test_scores_std = np.std(test_scoreNum, axis=1)\n",
+        "\n",
+        "plt.figure(figsize = (20,10))\n",
+        "plt.plot([3,4,7,10,12,15,20,25,30],train_scores_mean)\n",
+        "plt.plot([3,4,7,10,12,15,20,25,30],test_scores_mean)\n",
+        "plt.legend(['Train Score','Test Score'], fontsize = 'large')\n",
+        "plt.title('Validation Curve Score for n_estimators', fontsize = 'large')\n"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VfJlLcq_d-Ul"
+      },
+      "source": [
+        "#Run the loop for every unique cluster - 17 loops\n",
+        "for cluster_selected in clusters_df.Cluster.unique():\n",
+        "    \n",
+        "    print(f'The current cluster running is : {cluster_selected}')\n",
+        "    \n",
+        "    #Get data for that cluster\n",
+        "    co_data = all_data[all_data.symbol.isin(clusters_df.loc[clusters_df.Cluster==cluster_selected,'Companies'].tolist())].copy()\n",
+        "    co_train = co_data[:'2018-12-31']\n",
+        "    co_train = co_train.dropna().copy()\n",
+        "    \n",
+        "    X_train = co_train.loc[:,Target_variables]\n",
+        "\n",
+        "    Y_train = co_train.loc[:,['Target_Direction']]\n",
+        "\n",
+        "    #Define paramters from Validation Curve\n",
+        "    params = {'max_depth': [5, 7],\n",
+        "          'max_features': ['sqrt'],\n",
+        "          'min_samples_leaf': [10, 15, 20],\n",
+        "          'n_estimators': [5, 7, 9],\n",
+        "         'min_samples_split':[20, 25, 30]} #Using Validation Curves\n",
+        "\n",
+        "    rf = RandomForestClassifier()\n",
+        "\n",
+        "    #Perform a TimeSeriesSplit on the dataset\n",
+        "    time_series_split = TimeSeriesSplit(n_splits = 3)\n",
+        "\n",
+        "    \n",
+        "    rf_cv = GridSearchCV(rf, params, cv = time_series_split, n_jobs = -1, verbose = 20)\n",
+        "\n",
+        "    #Fit the random forest with our X_train and Y_train\n",
+        "    rf_cv.fit(X_train, Y_train)\n",
+        "          \n",
+        "    #Save the fited variable into a Pickle file\n",
+        "    file_loc = f'{os.getcwd()}\\\\Pickle_Files\\\\Cluster_{cluster_selected}'    \n",
+        "    pickle.dump(rf_cv, open(file_loc,'wb'))\n",
+        "    "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PSmfOkpxeHpa"
+      },
+      "source": [
+        "#Use 2nd January Data\n",
+        "day_data = test_data.loc['2019-01-02']\n",
+        "\n",
+        "pred_for_tomorrow = pd.DataFrame({'Date':[],\n",
+        "                                  'company':[],\n",
+        "                                  'prediction':[]})\n",
+        "\n",
+        "#Predict each stock using the 2nd January Data\n",
+        "for cluster_selected in clusters_df.Cluster.unique():\n",
+        "    rf_cv =  pickle.load(open(os.getcwd() + f'\\\\Pickle_Files\\\\Cluster_{cluster_selected}', 'rb'))\n",
+        "    best_rf = rf_cv.best_estimator_\n",
+        "    cluster_data = day_data.loc[day_data.symbol.isin(clusters_df.loc[clusters_df.Cluster==cluster_selected,'Companies'].tolist())].copy()\n",
+        "    cluster_data = cluster_data.dropna()\n",
+        "    if (cluster_data.shape[0]>0):\n",
+        "        X_test = cluster_data.loc[:,Target_variables]\n",
+        "\n",
+        "        pred_for_tomorrow = pred_for_tomorrow.append(pd.DataFrame({'Date':cluster_data.index,\n",
+        "                                                                   'company':cluster_data['symbol'],\n",
+        "                                                                   'prediction':best_rf.predict_proba(X_test)[:,1]}), ignore_index = True)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "2rHDj5DseJCs"
+      },
+      "source": [
+        "top_10_pred = pred_for_tomorrow.sort_values(by = ['prediction'], ascending = False).head(10)\n",
+        "\n",
+        "for selected_company in top_10_pred['company']:\n",
+        "    actual = all_data[all_data.symbol == selected_company].loc['2019-01-02','Target_Direction']\n",
+        "    pct_change = all_data[all_data.symbol == selected_company].loc['2019-01-02','Target']\n",
+        "    top_10_pred.loc[top_10_pred.company == selected_company,'actual'] = actual\n",
+        "    top_10_pred.loc[top_10_pred.company == selected_company,'pct_change'] = pct_change"
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
